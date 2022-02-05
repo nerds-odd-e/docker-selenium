@@ -2,6 +2,7 @@ from http.server import BaseHTTPRequestHandler,HTTPServer
 from os import environ
 import json
 import psutil
+from subprocess import Popen
 
 video_ready_port = int(environ.get('VIDEO_READY_PORT', 9000))
 
@@ -14,6 +15,12 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(response_code)
         self.end_headers()
         self.wfile.write(json.dumps({'status': response_text}).encode('utf-8'))
+
+    def do_POST(self):
+        Popen("/opt/bin/video.sh")
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'video recording started'}).encode('utf-8'))
 
 httpd = HTTPServer( ('0.0.0.0', video_ready_port), Handler )
 httpd.serve_forever()
