@@ -12,22 +12,13 @@ RUN  echo "deb http://archive.ubuntu.com/ubuntu focal main universe\n" > /etc/ap
 ENV DEBIAN_FRONTEND=noninteractive \
     DEBCONF_NONINTERACTIVE_SEEN=true
 
-#========================
-# Supervisor
-#========================
 RUN apt-get -qqy update \
-  && apt-get -qqy --no-install-recommends install \
-    supervisor x11-xserver-utils python3-pip \
+  && apt-get -qqy --no-install-recommends install x11-xserver-utils python3-pip \
   && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
-#======================================
-# Add Supervisor configuration files
-#======================================
-COPY supervisord.conf /etc
 COPY entry_point.sh video.sh video_ready.py /opt/bin/
-RUN cd /opt/bin && pip install psutil
 
-RUN  mkdir -p /var/run/supervisor /var/log/supervisor /videos
+RUN  mkdir -p /videos
 
 ENTRYPOINT ["/opt/bin/entry_point.sh"]
 CMD ["/opt/bin/entry_point.sh"]
