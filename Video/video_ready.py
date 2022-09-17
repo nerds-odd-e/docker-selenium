@@ -11,6 +11,7 @@ video_ready_port = int(environ.get('VIDEO_READY_PORT', 9000))
 
 class Handler(BaseHTTPRequestHandler):
     process: None
+    name: None
 
     def do_POST(self):
         try:
@@ -24,6 +25,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_recording()
                 self.respond_with_body(200, {'status': 'video recording ended'})
                 return
+            if self.path.startswith("/cancel"):
+                self.cancel_recording()
+                self.respond_with_body(200, {'status': 'video recording cancelled'})
+                return
         except Exception as e:
             self.respond_with_body(500, {'exception': str(e)})
 
@@ -33,6 +38,7 @@ class Handler(BaseHTTPRequestHandler):
         Handler.process = subprocess.Popen("/opt/bin/video.sh '" + name + "'", stdout=subprocess.PIPE,
                                            shell=True,
                                            preexec_fn=os.setsid)
+        Handler.name = name
 
     def end_recording(self):
         os.killpg(os.getpgid(Handler.process.pid), signal.SIGTERM)
@@ -43,6 +49,12 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'application/json')
         self.end_headers()
         self.wfile.write(json.dumps(body).encode('utf-8'))
+
+    def cancel_recording(self):
+        os.killpg(os.getpgid(Handler.process.pid), signal.SIGTERM)
+        Handler.process.wait()
+        Handler.process = None
+        os.remove("/videos/"+Handler.name)
 
 
 httpd = HTTPServer(('0.0.0.0', video_ready_port), Handler)
